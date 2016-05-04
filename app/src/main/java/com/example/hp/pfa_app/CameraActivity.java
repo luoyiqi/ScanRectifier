@@ -35,7 +35,7 @@ public class CameraActivity extends Activity {
     private boolean hasExceptionHandler = false;
 
     private FrameLayout previewLayout;
-
+    Intent intent;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,7 +94,7 @@ public class CameraActivity extends Activity {
 
     public void onCaptureButtonClick(View view) {
         Log.d(DEBUG_TAG, "Photo button is pressed.");
-
+        intent = new Intent(this, MainActivity.class);
         if (camera == null) {
             Log.d(DEBUG_TAG, "Camera is not available.");
             Toast.makeText(this, "Camera is not available.", Toast.LENGTH_LONG).show();
@@ -140,9 +140,13 @@ public class CameraActivity extends Activity {
             // Go back to the parent with the photo data.
             PhotoHolder.getInstance().set(bitmap);
 
+
+            intent.putExtra(EXTRA_PHOTO, true);
+            startActivity(intent);
+            /*
             Intent upIntent = getParentActivityIntent();
             upIntent.putExtra(EXTRA_PHOTO, true);
-            navigateUpTo(upIntent);
+            navigateUpTo(upIntent);*/
         }
     };
 

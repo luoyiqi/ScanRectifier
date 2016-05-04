@@ -1,6 +1,9 @@
 package com.example.hp.pfa_app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -10,6 +13,7 @@ import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -49,10 +53,26 @@ public class MainActivity extends Activity {
         // Set up touch-enabled image views. They cannot be fully configured with XML.
         sourceImageView = (ImageViewTouch) findViewById(R.id.source_image_view);
         sourceImageView.setDisplayType(ImageViewTouchBase.DisplayType.FIT_IF_BIGGER);
+
+        Intent intent = getIntent();
+        if (intent.getBooleanExtra(CameraActivity.EXTRA_PHOTO, false)) {
+            Log.d(DEBUG_TAG, "Received a photo from camera.");
+
+            Bitmap bitmap = PhotoHolder.getInstance().get();
+            PhotoHolder.getInstance().clean();
+
+            bitmap = resizeImageToShow(bitmap);
+
+            Log.d(DEBUG_TAG, "Showing the photo from camera.");
+            sourceImageView.setImageBitmap(bitmap);
+
+            // Clear destination image.
+            //destinationImageView.setImageResource(android.R.color.transparent);
+        }
         // Do not use ImageViewTouch#setImageResource. Otherwise its getDrawable returns
         // BitmapDrawable that is incompatible with FastBitmapDrawable.
-        Bitmap sampleBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.unbeaten_tracks);
-        sourceImageView.setImageBitmap(sampleBitmap);
+        //Bitmap sampleBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.unbeaten_tracks);
+        //sourceImageView.setImageBitmap(sampleBitmap);
 
         /*destinationImageView = (ImageViewTouch) findViewById(R.id.destination_image_view);
         destinationImageView.setDisplayType(ImageViewTouchBase.DisplayType.FIT_IF_BIGGER);*/
@@ -66,8 +86,8 @@ public class MainActivity extends Activity {
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_9, this, openCVLoaderCallback);
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
+   /* ,,,,,,,,,,,,,,, @Override
+   protected void onNewIntent(Intent intent) {
         Log.d(DEBUG_TAG, "New intent has come.");
 
         super.onNewIntent(intent);
@@ -86,7 +106,7 @@ public class MainActivity extends Activity {
             // Clear destination image.
             //destinationImageView.setImageResource(android.R.color.transparent);
         }
-    }
+    }*/
 
     // ImageView cannot show too large image.
     private Bitmap resizeImageToShow(Bitmap bitmap) {
@@ -113,14 +133,22 @@ public class MainActivity extends Activity {
         Intent intent = new Intent(this, CameraActivity.class);
         startActivity(intent);
     }
+    public void onSaveClick(View view) {
 
+        Context context = getApplicationContext();
+        CharSequence text = "Document Saved!";
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
+    }
     public void onRectifyButtonClick(View view) {
         if (!openCVLoaded) {
             Toast.makeText(this, "OpenCV is not yet loaded.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        Button rectifyButton = (Button) findViewById(R.id.rectify_button);
+        FloatingActionButton rectifyButton = (FloatingActionButton) findViewById(R.id.rectify_button);
         rectifyButton.setEnabled(false);
 
         // Get the bitmap from the image view.
