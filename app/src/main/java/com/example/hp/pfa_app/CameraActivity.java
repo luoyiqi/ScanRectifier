@@ -23,6 +23,9 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.github.amlcurran.showcaseview.ShowcaseView;
+import com.github.amlcurran.showcaseview.targets.ActionViewTarget;
+
 
 public class CameraActivity extends Activity {
     public static final String EXTRA_PHOTO = "com.shuheikagawa.rectify.PHOTO";
@@ -49,6 +52,8 @@ public class CameraActivity extends Activity {
         }
 
         previewLayout = (FrameLayout) findViewById(R.id.camera_preview);
+
+
     }
 
     @Override

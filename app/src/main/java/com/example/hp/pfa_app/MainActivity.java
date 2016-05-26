@@ -2,6 +2,7 @@ package com.example.hp.pfa_app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,14 +14,30 @@ import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfImportedPage;
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.PdfWriter;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -31,6 +48,18 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Scalar;
 
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+
 import it.sephiroth.android.library.imagezoom.ImageViewTouch;
 import it.sephiroth.android.library.imagezoom.ImageViewTouchBase;
 import it.sephiroth.android.library.imagezoom.graphics.FastBitmapDrawable;
@@ -38,8 +67,9 @@ import it.sephiroth.android.library.imagezoom.graphics.FastBitmapDrawable;
 
 public class MainActivity extends Activity {
     private final static String DEBUG_TAG = "MainActivity";
+    static Rectangle pagesize;
     private boolean openCVLoaded = false;
-
+    public static int i=0;
     private ImageViewTouch sourceImageView;
     //private ImageViewTouch destinationImageView;
 
@@ -135,13 +165,214 @@ public class MainActivity extends Activity {
     }
     public void onSaveClick(View view) {
 
-        Context context = getApplicationContext();
-        CharSequence text = "Document Saved!";
-        int duration = Toast.LENGTH_SHORT;
+        i++;
+        FastBitmapDrawable drawable = (FastBitmapDrawable) sourceImageView.getDrawable();
+        Bitmap bmp = drawable.getBitmap();
 
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.show();
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() +
+                "/Scan Rectifier";
+        File dir = new File(file_path);
+        if(!dir.exists())
+            dir.mkdirs();
+        File file = new File(dir, "image"+Integer.toString(i) + ".jpg");
+        try{
+        FileOutputStream fOut = new FileOutputStream(file);
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+
+        fOut.flush();
+        fOut.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        try {
+            Image image = Image.getInstance(file_path+"/image"+Integer.toString(i)+".jpg");
+            Rectangle pagesize = new Rectangle(image.getScaledWidth(),image.getScaledHeight());
+            Document document = new Document(pagesize);
+            File file1 = new File(dir, "doc"+Integer.toString(i) + ".pdf");
+            PdfWriter.getInstance(document, new FileOutputStream(file1));
+            document.open();
+
+
+
+            image.scaleToFit(image.getScaledWidth(),image.getScaledHeight());
+            image.setAbsolutePosition(0, 0);
+            document.add(image);
+
+            document.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+
+
+        LayoutInflater li = LayoutInflater.from(this);
+        View promptsView = li.inflate(R.layout.save_layout, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                this);
+
+        // set prompts.xml to alertdialog builder
+        alertDialogBuilder.setView(promptsView);
+
+        final EditText userInput = (EditText) promptsView
+                .findViewById(R.id.docname);
+
+
+        // set dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setPositiveButton("OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                // get user input and set it to result
+                                // edit text
+                                String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() +
+                                        "/Scan Rectifier";
+                                File dir = new File(file_path);
+                                //************************************
+                                List<InputStream> list = new ArrayList<InputStream>();
+                                try {
+                                    // Source pdfs
+                                    for (int j = 1; j <= i; j++) {
+                                        File file = new File(dir, "doc" + j + ".pdf");
+                                        // list.add(new FileInputStream(new File(dir, "doc1.pdf")));
+                                        list.add(new FileInputStream(file));
+                                    }
+                                    // Resulting pdf
+                                    OutputStream out = new FileOutputStream(new File(dir, userInput.getText() + ".pdf"));
+                                    doMerge(list, out);
+                                    for (int j = 1; j <= i; j++) {
+                                        File file = new File(dir, "doc" + j + ".pdf");
+                                        // list.add(new FileInputStream(new File(dir, "doc1.pdf")));
+                                       // list.add(new FileInputStream(file));
+                                        file.delete();
+                                    }
+                                    for (int j = 1; j <= i; j++) {
+                                        File file = new File(dir, "image" + j + ".jpg");
+                                        File file1 = new File(dir, userInput.getText().toString()+ j + ".jpg");
+                                        // list.add(new FileInputStream(new File(dir, "doc1.pdf")));
+                                        // list.add(new FileInputStream(file));
+                                        file.renameTo(file1);
+                                    }
+                                } catch (FileNotFoundException e) {
+                                    e.printStackTrace();
+                                } catch (DocumentException e) {
+                                    e.printStackTrace();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+
+
+
+
+                                /*for (int j = 1; j < i+1; j++) {
+
+
+                                    File file = new File(dir, "image"+Integer.toString(j)+".png");
+                                    File file1 = new File(dir, userInput.getText() + Integer.toString(j) + ".png");
+
+                                    file.renameTo(file1);
+                                }*/
+                                Context context = getApplicationContext();
+                                CharSequence text = "Document Saved!";
+                                int duration = Toast.LENGTH_SHORT;
+
+                                Toast toast = Toast.makeText(context, text, duration);
+                                toast.show();
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
+
+
     }
+
+    public static void doMerge(List<InputStream> list, OutputStream outputStream)
+            throws DocumentException, IOException {
+        Document document = new Document(pagesize);
+        PdfWriter writer = PdfWriter.getInstance(document, outputStream);
+        document.open();
+        PdfContentByte cb = writer.getDirectContent();
+
+        for (InputStream in : list) {
+            PdfReader reader = new PdfReader(in);
+            for (int i = 1; i <= reader.getNumberOfPages(); i++) {
+                document.newPage();
+                //import the page from source pdf
+                PdfImportedPage page = writer.getImportedPage(reader, i);
+                //add the page to the destination pdf
+                cb.addTemplate(page, 0, 0);
+            }
+        }
+
+        outputStream.flush();
+        document.close();
+        outputStream.close();
+    }
+
+
+
+
+    public void onNextButtonClick(View view){
+        i++;
+        FastBitmapDrawable drawable = (FastBitmapDrawable) sourceImageView.getDrawable();
+        Bitmap bmp = drawable.getBitmap();
+
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() +
+                "/Scan Rectifier";
+        File dir = new File(file_path);
+        if(!dir.exists())
+            dir.mkdirs();
+        File file = new File(dir, "image"+Integer.toString(i) + ".jpg");
+        try{
+            FileOutputStream fOut = new FileOutputStream(file);
+            bmp.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+            fOut.flush();
+            fOut.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        try {
+            Image image = Image.getInstance(file_path+"/image"+Integer.toString(i)+".jpg");
+            pagesize = new Rectangle(image.getScaledWidth(),image.getScaledHeight());
+            Document document = new Document(pagesize);
+            File file1 = new File(dir, "doc"+Integer.toString(i) + ".pdf");
+            PdfWriter.getInstance(document, new FileOutputStream(file1));
+            document.open();
+
+
+
+            image.scaleToFit(image.getScaledWidth(),image.getScaledHeight());
+            image.setAbsolutePosition(0,0);
+            document.add(image);
+
+            document.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        // open Camera
+        Intent intent = new Intent(this, CameraActivity.class);
+        startActivity(intent);
+
+
+    }
+
     public void onRectifyButtonClick(View view) {
         if (!openCVLoaded) {
             Toast.makeText(this, "OpenCV is not yet loaded.", Toast.LENGTH_LONG).show();
