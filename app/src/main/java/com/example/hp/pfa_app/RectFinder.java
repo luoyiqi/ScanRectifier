@@ -45,7 +45,7 @@ public class RectFinder {
         Imgproc.resize(src, downscaled, downscaledSize);
 
         // Find rectangles.
-        List<MatOfPoint2f> rectangles = findRectangles(downscaled);
+        List<   MatOfPoint2f> rectangles = findRectangles(downscaled);
         Log.d(DEBUG_TAG, rectangles.size() + " rectangles found.");
 
         if (rectangles.size() == 0) {

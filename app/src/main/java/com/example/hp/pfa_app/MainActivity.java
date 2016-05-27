@@ -256,6 +256,7 @@ public class MainActivity extends Activity {
                                         // list.add(new FileInputStream(file));
                                         file.renameTo(file1);
                                     }
+                                    i=0;
                                 } catch (FileNotFoundException e) {
                                     e.printStackTrace();
                                 } catch (DocumentException e) {
